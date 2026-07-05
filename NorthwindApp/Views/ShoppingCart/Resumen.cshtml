@@ -1,0 +1,88 @@
+@model NorthwindApp.ViewModels.OrdenResumenViewModel
+
+@{
+    ViewData["Title"] = "Orden Confirmada";
+}
+
+<div class="container py-5">
+    <div class="text-center mb-4">
+        <div class="display-1 text-success">✅</div>
+        <h1 class="mt-2">¡Compra Confirmada!</h1>
+        <p class="lead text-muted">Tu orden ha sido registrada exitosamente.</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Resumen de la Orden</h5>
+                    <span class="badge bg-light text-dark fs-6">Orden #@Model.OrderId</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Número de Orden:</strong><br />
+                            <span class="fs-5 text-primary">#@Model.OrderId</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>Fecha:</strong><br />
+                            <span>@Model.OrderDate?.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <table class="table table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Cant.</th>
+                                <th class="text-end">Precio Unit.</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td>@item.ProductName</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="text-end">$@item.UnitPrice.ToString("F2")</td>
+                                    <td class="text-end fw-semibold">$@item.Subtotal.ToString("F2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-success">
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold fs-5">TOTAL:</td>
+                                <td class="text-end fw-bold fs-5">$@Model.Total.ToString("F2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <small class="text-muted">Total de unidades: <strong>@Model.TotalProductos</strong></small>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted">Productos distintos: <strong>@Model.Items.Count</strong></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a asp-controller="Compras" asp-action="MisOrdenes" class="btn btn-outline-primary me-2">
+                        📋 Ver Mis Órdenes
+                    </a>
+                    <a asp-controller="Products" asp-action="Tienda" class="btn btn-success">
+                        🛒 Seguir Comprando
+                    </a>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3">
+                <strong>📦 El inventario ha sido actualizado:</strong>
+                El stock de cada producto ha sido descontado automáticamente al confirmar esta orden.
+            </div>
+        </div>
+    </div>
+</div>

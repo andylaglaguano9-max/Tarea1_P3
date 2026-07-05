@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NorthwindApp.Data;
 using NorthwindApp.Models;
+using NorthwindApp.ViewModels;
 
 namespace NorthwindApp.Controllers;
 
@@ -16,16 +17,63 @@ public class ProductsController : Controller
         _context = context;
     }
 
-    // GET: Products - Vista relacional con Include()
+    // =====================================================================
+    // CONSULTA LINQ #3: 10 productos con nombre de categoría usando Include
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/Index
+    /// Vista administrativa - muestra todos los productos con sus relaciones.
+    /// </summary>
     public async Task<IActionResult> Index()
     {
-        // Consulta LINQ #3: 10 productos con nombre de categoría usando Include
         var productos = await _context.Products
             .Include(p => p.Category)
             .Include(p => p.Supplier)
             .OrderBy(p => p.ProductName)
             .Take(10)
             .ToListAsync();
+        return View(productos);
+    }
+
+    // =====================================================================
+    // CONSULTA LINQ: Tienda - productos disponibles para compra
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/Tienda
+    /// Vista de tienda para Customer y Admin.
+    /// Muestra solo productos disponibles (no descontinuados y con stock > 0).
+    /// Incluye búsqueda por nombre y ordenamiento.
+    /// </summary>
+    [Authorize(Roles = "Customer,Admin")]
+    public async Task<IActionResult> Tienda(string? buscar, string? ordenar)
+    {
+        // Consulta LINQ: productos disponibles (no descontinuados, stock > 0)
+        var query = _context.Products
+            .Include(p => p.Category)
+            .Where(p => p.Discontinued == 0 && p.UnitsInStock > 0)
+            .AsQueryable();
+
+        // Consulta LINQ: búsqueda por nombre
+        if (!string.IsNullOrEmpty(buscar))
+        {
+            query = query.Where(p => p.ProductName.Contains(buscar));
+        }
+
+        // Consulta LINQ: ordenamiento por nombre o precio
+        query = ordenar switch
+        {
+            "precio_asc" => query.OrderBy(p => p.UnitPrice),
+            "precio_desc" => query.OrderByDescending(p => p.UnitPrice),
+            _ => query.OrderBy(p => p.ProductName)
+        };
+
+        var productos = await query.ToListAsync();
+
+        ViewData["Buscar"] = buscar;
+        ViewData["Ordenar"] = ordenar;
+
         return View(productos);
     }
 
@@ -137,7 +185,160 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // ========== CONSULTAS LINQ ==========
+    // =====================================================================
+    // GESTIÓN DE INVENTARIO (Solo Admin)
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/AjustarStock/5
+    /// Muestra el formulario para incrementar o reducir el stock de un producto.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AjustarStock(short? id)
+    {
+        if (id == null) return NotFound();
+
+        // Consulta LINQ: buscar producto por ID
+        var producto = await _context.Products
+            .FirstOrDefaultAsync(p => p.ProductId == id);
+
+        if (producto == null) return NotFound();
+
+        var vm = new AjusteStockViewModel
+        {
+            ProductId = producto.ProductId,
+            ProductName = producto.ProductName,
+            StockActual = producto.UnitsInStock ?? 0,
+            Tipo = "Incremento"
+        };
+
+        return View(vm);
+    }
+
+    /// <summary>
+    /// POST: Products/AjustarStock
+    /// Valida y aplica el ajuste de stock (incremento o reducción).
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AjustarStock(AjusteStockViewModel vm)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(vm);
+        }
+
+        // Validación: cantidad debe ser positiva
+        if (vm.Cantidad <= 0)
+        {
+            ModelState.AddModelError("Cantidad", "La cantidad debe ser mayor que cero.");
+            return View(vm);
+        }
+
+        // Consulta LINQ: obtener producto actualizado desde la DB
+        var producto = await _context.Products
+            .FirstOrDefaultAsync(p => p.ProductId == vm.ProductId);
+
+        if (producto == null) return NotFound();
+
+        short stockActual = producto.UnitsInStock ?? 0;
+
+        if (vm.Tipo == "Incremento")
+        {
+            producto.UnitsInStock = (short)(stockActual + vm.Cantidad);
+            TempData["Exito"] = $"Stock incrementado. Nuevo stock de '{producto.ProductName}': {producto.UnitsInStock} unidades.";
+        }
+        else if (vm.Tipo == "Reduccion")
+        {
+            // Validación: no puede quedar stock negativo
+            if (vm.Cantidad > stockActual)
+            {
+                ModelState.AddModelError("Cantidad", $"No se puede reducir {vm.Cantidad} unidades. Stock disponible: {stockActual}.");
+                vm.StockActual = stockActual;
+                return View(vm);
+            }
+            producto.UnitsInStock = (short)(stockActual - vm.Cantidad);
+            TempData["Exito"] = $"Stock reducido. Nuevo stock de '{producto.ProductName}': {producto.UnitsInStock} unidades.";
+        }
+        else
+        {
+            ModelState.AddModelError("Tipo", "Tipo de ajuste inválido.");
+            return View(vm);
+        }
+
+        await _context.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    // =====================================================================
+    // CONSULTA LINQ: Productos con bajo stock
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/BajoStock
+    /// Muestra productos cuyo stock es menor o igual al nivel de reorden,
+    /// pero aún tienen existencias. Solo para Admin.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> BajoStock()
+    {
+        // Consulta LINQ: productos con stock <= ReorderLevel y stock > 0
+        var productos = await _context.Products
+            .Include(p => p.Category)
+            .Where(p => p.UnitsInStock <= p.ReorderLevel && p.UnitsInStock > 0)
+            .OrderBy(p => p.UnitsInStock)
+            .ToListAsync();
+
+        return View(productos);
+    }
+
+    // =====================================================================
+    // CONSULTA LINQ: Productos sin existencias
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/SinStock
+    /// Muestra productos con stock igual a cero. Solo para Admin.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SinStock()
+    {
+        // Consulta LINQ: productos con stock = 0
+        var productos = await _context.Products
+            .Include(p => p.Category)
+            .Where(p => p.UnitsInStock == 0 || p.UnitsInStock == null)
+            .OrderBy(p => p.ProductName)
+            .ToListAsync();
+
+        return View(productos);
+    }
+
+    // =====================================================================
+    // CONSULTA LINQ: Productos descontinuados
+    // =====================================================================
+
+    /// <summary>
+    /// GET: Products/Descontinuados
+    /// Muestra productos marcados como descontinuados (Discontinued = 1).
+    /// Solo para Admin.
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Descontinuados()
+    {
+        // Consulta LINQ: productos con Discontinued != 0
+        var productos = await _context.Products
+            .Include(p => p.Category)
+            .Where(p => p.Discontinued != 0)
+            .OrderBy(p => p.ProductName)
+            .ToListAsync();
+
+        return View(productos);
+    }
+
+    // =====================================================================
+    // CONSULTAS LINQ PREVIAS (mantenidas del examen anterior)
+    // =====================================================================
 
     // Consulta LINQ #1: Los 10 productos más caros (OrderByDescending + Take)
     public async Task<IActionResult> MasCaros()
@@ -210,7 +411,7 @@ public class ProductsController : Controller
     }
 }
 
-// ViewModel para la consulta con Join
+// ViewModel para la consulta con Join (mantenido del examen anterior)
 public class ProductoCategoriaViewModel
 {
     public string ProductName { get; set; } = null!;

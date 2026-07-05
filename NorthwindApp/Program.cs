@@ -20,15 +20,24 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
 
 builder.Services.AddControllersWithViews();
 
+// Sesión para el carrito de compras
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
-// Seed Roles
+// Seed Roles y Usuarios
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-    
-    string[] roles = { "Admin", "Employee" };
+
+    string[] roles = { "Admin", "Employee", "Customer" };
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -36,8 +45,8 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole(role));
         }
     }
-    
-    // Create default Admin user
+
+    // Crear usuario Admin
     var adminEmail = "admin@northwind.com";
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {
@@ -46,6 +55,18 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+    }
+
+    // Crear usuario Customer
+    var customerEmail = "customer@northwind.com";
+    if (await userManager.FindByEmailAsync(customerEmail) == null)
+    {
+        var customerUser = new IdentityUser { UserName = customerEmail, Email = customerEmail };
+        var result = await userManager.CreateAsync(customerUser, "Customer123!");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(customerUser, "Customer");
         }
     }
 }
@@ -62,6 +83,8 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSession(); // Habilitar sesiones (carrito de compras)
 
 app.MapStaticAssets();
 

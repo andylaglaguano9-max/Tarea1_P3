@@ -1,34 +1,34 @@
 @model IEnumerable<NorthwindApp.Models.Order>
 
 @{
-    ViewData["Title"] = "Todas las Órdenes";
+    ViewData["Title"] = "Mis Órdenes";
 }
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>🧾 Todas las Órdenes</h1>
-        <a asp-action="ProductosMasComprados" class="btn btn-outline-info">
-            📈 Productos Más Comprados
-        </a>
-    </div>
+    <h1 class="mb-4">📋 Mis Órdenes</h1>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info">No hay órdenes registradas.</div>
+        <div class="text-center py-5">
+            <div class="display-3 text-muted">📦</div>
+            <h4 class="text-muted mt-3">No tienes órdenes registradas aún</h4>
+            <p class="text-muted">Realiza tu primera compra en la tienda.</p>
+            <a asp-controller="Products" asp-action="Tienda" class="btn btn-primary btn-lg mt-2">
+                🛒 Ir a la Tienda
+            </a>
+        </div>
     }
     else
     {
-        <p class="text-muted mb-3">Total de órdenes: <strong>@Model.Count()</strong></p>
+        <p class="text-muted mb-3">Tienes <strong>@Model.Count()</strong> órdenes registradas.</p>
         <div class="table-responsive">
             <table class="table table-hover table-bordered shadow-sm">
                 <thead class="table-dark">
                     <tr>
                         <th>Orden #</th>
-                        <th>Cliente</th>
-                        <th>Empleado</th>
                         <th>Fecha</th>
-                        <th>Ciudad Envío</th>
-                        <th>País</th>
+                        <th>Fecha Requerida</th>
+                        <th>Dirección de Envío</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -37,15 +37,13 @@
                     {
                         <tr>
                             <td class="fw-bold text-primary">#@order.OrderId</td>
-                            <td>@(order.ShipName ?? order.Customer?.CompanyName ?? "—")</td>
-                            <td>@(order.Employee != null ? $"{order.Employee.FirstName} {order.Employee.LastName}" : "—")</td>
                             <td>@order.OrderDate?.ToString("dd/MM/yyyy")</td>
-                            <td>@order.ShipCity</td>
-                            <td>@order.ShipCountry</td>
+                            <td>@order.RequiredDate?.ToString("dd/MM/yyyy")</td>
+                            <td>@order.ShipAddress, @order.ShipCity</td>
                             <td class="text-center">
-                                <a asp-action="Details" asp-route-id="@order.OrderId"
+                                <a asp-action="DetalleOrden" asp-route-id="@order.OrderId"
                                    class="btn btn-sm btn-outline-info">
-                                    🔍 Detalle
+                                    🔍 Ver Detalle
                                 </a>
                             </td>
                         </tr>

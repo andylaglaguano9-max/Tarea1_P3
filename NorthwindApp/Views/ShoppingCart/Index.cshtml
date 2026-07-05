@@ -1,0 +1,144 @@
+@model NorthwindApp.ViewModels.CarritoViewModel
+
+@{
+    ViewData["Title"] = "Mi Carrito de Compras";
+}
+
+<div class="container py-4">
+    <h1 class="mb-4">🛍️ Mi Carrito de Compras</h1>
+
+    @if (!Model.EstaVacio)
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Productos seleccionados</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0" id="tabla-carrito">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr id="fila-@item.ProductId">
+                                        <td class="align-middle fw-semibold">@item.ProductName</td>
+                                        <td class="align-middle text-end">$@item.UnitPrice.ToString("F2")</td>
+                                        <td class="align-middle text-center" style="width: 180px;">
+                                            <form asp-action="ActualizarCantidad" method="post" class="d-flex align-items-center justify-content-center gap-1">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                                <input type="number" name="cantidad" value="@item.Quantity"
+                                                       min="1" max="9999" step="1"
+                                                       class="form-control form-control-sm text-center"
+                                                       style="width:70px;"
+                                                       required
+                                                       title="Solo cantidades enteras positivas" />
+                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Actualizar">↻</button>
+                                            </form>
+                                        </td>
+                                        <td class="align-middle text-end fw-bold text-success">$@item.Subtotal.ToString("F2")</td>
+                                        <td class="align-middle text-center">
+                                            <form asp-action="EliminarProducto" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('¿Eliminar @item.ProductName del carrito?')">
+                                                    🗑️ Quitar
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <a asp-controller="Products" asp-action="Tienda" class="btn btn-outline-secondary">
+                        ← Seguir comprando
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Resumen de Compra</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Total de productos:</td>
+                                <td class="text-end fw-bold">@Model.TotalProductos</td>
+                            </tr>
+                            <tr>
+                                <td>Ítems distintos:</td>
+                                <td class="text-end fw-bold">@Model.Items.Count</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td class="fs-5 fw-bold">Total:</td>
+                                <td class="text-end fs-5 fw-bold">$@Model.Total.ToString("F2")</td>
+                            </tr>
+                        </table>
+
+                        @if (!Model.EstaVacio)
+                        {
+                            <form asp-action="Confirmar" method="post" id="form-confirmar">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success w-100 btn-lg"
+
+                                        id="btn-confirmar">
+                                    ✅ Confirmar Compra
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mt-3 border-warning">
+                    <div class="card-body text-muted small">
+                        <strong>ℹ️ Información:</strong><br/>
+                        Los precios son tomados directamente de la base de datos al momento de confirmar.
+                        El stock se actualiza automáticamente al confirmar la compra.
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="display-1">🛒</div>
+            <h3 class="text-muted mt-3">Tu carrito está vacío</h3>
+            <p class="text-muted">Agrega productos desde la tienda para comenzar tu compra.</p>
+            <a asp-controller="Products" asp-action="Tienda" class="btn btn-primary btn-lg mt-2">
+                Ir a la Tienda
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Validación cliente: solo enteros positivos en campo cantidad
+        document.querySelectorAll('input[name="cantidad"]').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.includes('.') || this.value < 1) {
+                    this.setCustomValidity('Solo se permiten cantidades enteras mayores que cero.');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+}

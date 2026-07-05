@@ -1,0 +1,158 @@
+@model IEnumerable<NorthwindApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Tienda - Productos Disponibles";
+    string buscar = ViewData["Buscar"] as string ?? "";
+    string ordenar = ViewData["Ordenar"] as string ?? "";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-cart3 text-primary"></i> Tienda</h1>
+        @if (User.IsInRole("Customer") || User.IsInRole("Admin"))
+        {
+            <a asp-controller="ShoppingCart" asp-action="Index" class="btn btn-outline-success">
+                <i class="bi bi-bag"></i> Ver mi Carrito
+            </a>
+        }
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form asp-action="Tienda" method="get" class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold"><i class="bi bi-search"></i> Buscar producto</label>
+                    <input type="text" name="buscar" value="@buscar" class="form-control"
+                           placeholder="Nombre del producto..." id="input-buscar" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold"><i class="bi bi-sort-down"></i> Ordenar por</label>
+                    <select name="ordenar" class="form-select" id="select-ordenar">
+                        <option value="" selected="@(ordenar == "" ? "selected" : null)">Nombre (A-Z)</option>
+                        <option value="precio_asc" selected="@(ordenar == "precio_asc" ? "selected" : null)">Precio (menor a mayor)</option>
+                        <option value="precio_desc" selected="@(ordenar == "precio_desc" ? "selected" : null)">Precio (mayor a menor)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100" id="btn-buscar">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                    <a asp-action="Tienda" class="btn btn-outline-secondary w-100 mt-1">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-box-seam display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">No se encontraron productos disponibles</h4>
+            @if (!string.IsNullOrEmpty(buscar))
+            {
+                <p class="text-muted">No hay resultados para "<strong>@buscar</strong>".</p>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-3">Mostrando <strong>@Model.Count()</strong> productos disponibles</p>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var item in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" id="producto-@item.ProductId">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-start">
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-tag"></i> @item.Category?.CategoryName
+                            </span>
+                            <span class="badge @(item.UnitsInStock <= 5 ? "bg-warning text-dark" : "bg-success")">
+                                <i class="bi bi-boxes"></i> Stock: @item.UnitsInStock
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@item.ProductName</h5>
+                            <p class="card-text text-muted small">
+                                <i class="bi bi-info-circle"></i> @item.QuantityPerUnit
+                            </p>
+                            <div class="fs-4 fw-bold text-success">
+                                <i class="bi bi-currency-dollar"></i>@item.UnitPrice?.ToString("F2")
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 pb-3">
+                            @if (User.IsInRole("Customer") || User.IsInRole("Admin"))
+                            {
+                                <form asp-controller="ShoppingCart" asp-action="AgregarProducto" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="productId" value="@item.ProductId" />
+                                    <div class="input-group">
+                                        <input type="number" name="cantidad" value="1"
+                                               min="1" max="@item.UnitsInStock" step="1"
+                                               class="form-control form-control-sm text-center"
+                                               required
+                                               id="cantidad-@item.ProductId"
+                                               title="Ingrese una cantidad entera entre 1 y @item.UnitsInStock" />
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                                id="agregar-@item.ProductId">
+                                            <i class="bi bi-cart-plus"></i> Agregar
+                                        </button>
+                                    </div>
+                                </form>
+                            }
+                            else
+                            {
+                                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary w-100 btn-sm">
+                                    <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión para comprar
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="card mt-4 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <strong><i class="bi bi-gear-fill"></i> Panel de Administración de Inventario</strong>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-action="BajoStock" class="btn btn-outline-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Bajo Stock
+                    </a>
+                    <a asp-action="SinStock" class="btn btn-outline-danger">
+                        <i class="bi bi-x-circle"></i> Sin Stock
+                    </a>
+                    <a asp-action="Descontinuados" class="btn btn-outline-secondary">
+                        <i class="bi bi-slash-circle"></i> Descontinuados
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-dark">
+                        <i class="bi bi-grid"></i> Gestionar Productos
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('input[name="cantidad"]').forEach(input => {
+            input.addEventListener('input', function() {
+                const max = parseInt(this.getAttribute('max')) || 9999;
+                const val = parseFloat(this.value);
+                if (!Number.isInteger(val) || val < 1 || val > max) {
+                    this.setCustomValidity(`Ingrese un número entero entre 1 y ${max}.`);
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+}

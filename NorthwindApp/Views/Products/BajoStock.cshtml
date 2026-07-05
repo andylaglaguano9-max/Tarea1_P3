@@ -1,0 +1,57 @@
+@model IEnumerable<NorthwindApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Productos con Bajo Stock";
+}
+
+<div class="container py-4">
+    <h1 class="mb-2">⚠️ Productos con Bajo Stock</h1>
+    <p class="text-muted mb-4">Productos cuyo stock actual es igual o menor al nivel de reorden (<em>ReorderLevel</em>), pero aún tienen existencias.</p>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">✅ No hay productos con bajo stock en este momento.</div>
+    }
+    else
+    {
+        <p class="text-warning fw-semibold">⚠️ Se encontraron <strong>@Model.Count()</strong> productos con bajo stock.</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-warning">
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Stock Actual</th>
+                        <th class="text-center">Nivel Reorden</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.ProductId</td>
+                            <td class="fw-semibold">@item.ProductName</td>
+                            <td>@item.Category?.CategoryName</td>
+                            <td class="text-end">$@item.UnitPrice?.ToString("F2")</td>
+                            <td class="text-center">
+                                <span class="badge bg-warning text-dark fs-6">@item.UnitsInStock</span>
+                            </td>
+                            <td class="text-center">@item.ReorderLevel</td>
+                            <td class="text-center">
+                                <a asp-action="AjustarStock" asp-route-id="@item.ProductId"
+                                   class="btn btn-sm btn-outline-primary">
+                                    ➕ Ajustar Stock
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Volver a Productos</a>
+</div>

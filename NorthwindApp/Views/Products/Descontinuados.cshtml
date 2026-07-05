@@ -1,0 +1,66 @@
+@model IEnumerable<NorthwindApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Productos Descontinuados";
+}
+
+<div class="container py-4">
+    <h1 class="mb-2">🚫 Productos Descontinuados</h1>
+    <p class="text-muted mb-4">
+        Productos marcados con <code>Discontinued = 1</code> en la base de datos.
+        Estos productos <strong>no aparecen en la tienda</strong> y no pueden ser comprados.
+    </p>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">✅ No hay productos descontinuados.</div>
+    }
+    else
+    {
+        <p class="text-secondary fw-semibold">🚫 Se encontraron <strong>@Model.Count()</strong> productos descontinuados.</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered opacity-75">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Stock</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="text-muted">
+                            <td>@item.ProductId</td>
+                            <td class="fw-semibold text-decoration-line-through">@item.ProductName</td>
+                            <td>@item.Category?.CategoryName</td>
+                            <td class="text-end">$@item.UnitPrice?.ToString("F2")</td>
+                            <td class="text-center">@item.UnitsInStock</td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">🚫 Descontinuado</span>
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@item.ProductId"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    ✏️ Editar
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="alert alert-info mt-2">
+            <strong>ℹ️ Tratamiento de productos descontinuados:</strong>
+            El sistema filtra estos productos en la vista de Tienda usando
+            <code>Where(p => p.Discontinued == 0)</code>. Además, el servidor valida
+            que no puedan agregarse al carrito ni procesarse en la transacción de compra.
+        </div>
+    }
+
+    <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Volver a Productos</a>
+</div>

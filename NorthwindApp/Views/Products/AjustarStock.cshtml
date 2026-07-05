@@ -1,0 +1,117 @@
+@model NorthwindApp.ViewModels.AjusteStockViewModel
+
+@{
+    ViewData["Title"] = "Ajustar Stock - " + Model.ProductName;
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="mb-4">⚙️ Ajustar Stock</h1>
+
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">@Model.ProductName</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Stock actual:</strong>
+                        <span class="fs-4 ms-2 fw-bold text-@(Model.StockActual <= 5 ? "danger" : "success")">
+                            @Model.StockActual unidades
+                        </span>
+                    </div>
+
+                    <form asp-action="AjustarStock" method="post" id="form-ajuste">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="ProductId" />
+                        <input type="hidden" asp-for="ProductName" />
+                        <input type="hidden" asp-for="StockActual" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tipo de Ajuste</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Tipo" value="Incremento"
+                                           id="radio-incremento" checked />
+                                    <label class="form-check-label text-success fw-semibold" for="radio-incremento">
+                                        ➕ Incrementar stock
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Tipo" value="Reduccion"
+                                           id="radio-reduccion" />
+                                    <label class="form-check-label text-danger fw-semibold" for="radio-reduccion">
+                                        ➖ Reducir stock
+                                    </label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="Tipo" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Cantidad" class="form-label fw-semibold">Cantidad</label>
+                            <input asp-for="Cantidad" type="number" class="form-control" min="1"
+                                   id="input-cantidad-ajuste" placeholder="Ingrese la cantidad" />
+                            <span asp-validation-for="Cantidad" class="text-danger"></span>
+                            <div class="form-text text-muted" id="preview-resultado"></div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" id="btn-aplicar-ajuste">
+                                Aplicar Ajuste
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mt-2"></div>
+                </div>
+            </div>
+
+            <div class="card mt-3 border-warning">
+                <div class="card-body small text-muted">
+                    <strong>Reglas de validación:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>La cantidad debe ser un número entero mayor que cero.</li>
+                        <li>No se permite reducir más unidades de las disponibles.</li>
+                        <li>No se permiten cantidades negativas ni cero.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const inputCantidad = document.getElementById('input-cantidad-ajuste');
+        const preview = document.getElementById('preview-resultado');
+        const stockActual = @Model.StockActual;
+
+        function actualizarPreview() {
+            const cantidad = parseInt(inputCantidad.value) || 0;
+            const tipo = document.querySelector('input[name="Tipo"]:checked')?.value;
+            if (cantidad > 0) {
+                if (tipo === 'Incremento') {
+                    preview.textContent = `Nuevo stock estimado: ${stockActual + cantidad} unidades`;
+                    preview.className = 'form-text text-success fw-semibold';
+                } else {
+                    const resultado = stockActual - cantidad;
+                    if (resultado < 0) {
+                        preview.textContent = `⚠️ No hay suficiente stock. Máximo a reducir: ${stockActual}`;
+                        preview.className = 'form-text text-danger fw-semibold';
+                    } else {
+                        preview.textContent = `Nuevo stock estimado: ${resultado} unidades`;
+                        preview.className = 'form-text text-warning fw-semibold';
+                    }
+                }
+            } else {
+                preview.textContent = '';
+            }
+        }
+
+        inputCantidad.addEventListener('input', actualizarPreview);
+        document.querySelectorAll('input[name="Tipo"]').forEach(r => r.addEventListener('change', actualizarPreview));
+    </script>
+}

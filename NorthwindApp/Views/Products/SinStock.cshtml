@@ -1,0 +1,66 @@
+@model IEnumerable<NorthwindApp.Models.Product>
+
+@{
+    ViewData["Title"] = "Productos Sin Stock";
+}
+
+<div class="container py-4">
+    <h1 class="mb-2">❌ Productos Sin Existencias</h1>
+    <p class="text-muted mb-4">Productos con stock igual a cero. No están disponibles para la venta.</p>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">✅ Todos los productos tienen existencias disponibles.</div>
+    }
+    else
+    {
+        <p class="text-danger fw-semibold">❌ Se encontraron <strong>@Model.Count()</strong> productos sin stock.</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <thead class="table-danger">
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Stock</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.ProductId</td>
+                            <td class="fw-semibold">@item.ProductName</td>
+                            <td>@item.Category?.CategoryName</td>
+                            <td class="text-end">$@item.UnitPrice?.ToString("F2")</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger fs-6">0</span>
+                            </td>
+                            <td class="text-center">
+                                @if (item.Discontinued != 0)
+                                {
+                                    <span class="badge bg-secondary">Descontinuado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Sin stock</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="AjustarStock" asp-route-id="@item.ProductId"
+                                   class="btn btn-sm btn-outline-success">
+                                    ➕ Reabastecer
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <a asp-action="Index" class="btn btn-outline-secondary mt-2">← Volver a Productos</a>
+</div>

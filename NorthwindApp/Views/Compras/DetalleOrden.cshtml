@@ -8,7 +8,7 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>🧾 Detalle de Orden <span class="text-primary">#@Model.OrderId</span></h1>
-        <a asp-action="Index" class="btn btn-outline-secondary">← Todas las Órdenes</a>
+        <a asp-action="MisOrdenes" class="btn btn-outline-secondary">← Mis Órdenes</a>
     </div>
 
     <div class="row mb-4">
@@ -18,11 +18,8 @@
                     <h6 class="card-title text-muted">Información de la Orden</h6>
                     <table class="table table-sm mb-0">
                         <tr><td><strong>Orden #:</strong></td><td>@Model.OrderId</td></tr>
-                        <tr><td><strong>Cliente:</strong></td><td>@(Model.ShipName ?? Model.Customer?.CompanyName ?? "—")</td></tr>
-                        <tr><td><strong>Empleado:</strong></td><td>@(Model.Employee != null ? $"{Model.Employee.FirstName} {Model.Employee.LastName}" : "—")</td></tr>
                         <tr><td><strong>Fecha:</strong></td><td>@Model.OrderDate?.ToString("dd/MM/yyyy")</td></tr>
                         <tr><td><strong>Fecha Requerida:</strong></td><td>@Model.RequiredDate?.ToString("dd/MM/yyyy")</td></tr>
-                        <tr><td><strong>Ciudad:</strong></td><td>@Model.ShipCity</td></tr>
                         <tr><td><strong>País:</strong></td><td>@Model.ShipCountry</td></tr>
                     </table>
                 </div>
@@ -32,13 +29,12 @@
 
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Detalle de Productos (OrderDetails)</h5>
+            <h5 class="mb-0">Productos de la Orden</h5>
         </div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>ID Producto</th>
                         <th>Producto</th>
                         <th class="text-end">Precio Unit.</th>
                         <th class="text-center">Cantidad</th>
@@ -51,7 +47,6 @@
                     {
                         float subtotal = detalle.UnitPrice * detalle.Quantity;
                         <tr>
-                            <td>@detalle.ProductId</td>
                             <td class="fw-semibold">@detalle.Product?.ProductName</td>
                             <td class="text-end">$@detalle.UnitPrice.ToString("F2")</td>
                             <td class="text-center">@detalle.Quantity</td>
@@ -62,7 +57,7 @@
                 </tbody>
                 <tfoot class="table-success">
                     <tr>
-                        <td colspan="5" class="text-end fw-bold fs-5">TOTAL DE LA ORDEN:</td>
+                        <td colspan="4" class="text-end fw-bold fs-5">TOTAL DE LA ORDEN:</td>
                         <td class="text-end fw-bold fs-5">$@totalOrden.ToString("F2")</td>
                     </tr>
                 </tfoot>
